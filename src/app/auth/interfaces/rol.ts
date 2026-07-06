@@ -1,5 +1,5 @@
 export enum UserRole {
-  Admin = "B71B78B8-5FAE-4913-8CBE-FCFC15749299",
-  Theacher = "CD608A34-E85C-412A-ABC6-22DFDEC7DA90",
-  Student = "2402A710-EF86-4E21-A3E2-B41EA623E5F5",
+  Admin = "e2a94373-b1b7-4a16-a3a2-b998c087d370",
+  Theacher = "9738968d-2c5b-45de-af24-c11e67080bc4",
+  Student = "2f0dd369-7ea5-4f4d-a1a3-cdeb61c12ad7",
 }

@@ -38,10 +38,11 @@ export class Auth {
 
   login(email: string, password: string): Observable<boolean> {
     return this.userService.login({ email, password }).pipe(
-      map((response: ApiResult<string>) => {
-        const token = response?.value ?? null;
+      map((response: unknown) => {
+        const token = this.extractTokenFromResponse(response);
+        const isSuccess = this.isSuccessfulResponse(response);
 
-        if (response?.isSuccess && token) {
+        if (isSuccess && token) {
           const decodedUser = this.decodeToken(token);
           const role = this.extractRoleFromClaims(decodedUser);
 
@@ -54,10 +55,10 @@ export class Auth {
             lastName: '',
             email,
             phoneNumber: '',
-            roleId: role,
+            roleId: role ? role : '',
             status: 1,
           });
-          this._rol.set((role as UserRole) || null);
+          this._rol.set(role);
           this._authStatus.set('authenticated');
           return true;
         }
@@ -67,7 +68,7 @@ export class Auth {
         this._authStatus.set('unauthenticated');
         return false;
       }),
-      catchError((error:any) => {
+      catchError(() => {
         this._token.set(null);
         this._user.set(null);
         this._authStatus.set('unauthenticated');
@@ -110,13 +111,35 @@ export class Auth {
         lastName: '',
         email: normalizedEmail,
         phoneNumber: '',
-        roleId: role,
+        roleId: role ? role : '',
         status: 1,
       });
-      this._rol.set((role as UserRole) || null);
+      this._rol.set(role);
     }
 
     return of(true);
+  }
+
+  private isSuccessfulResponse(response: unknown): boolean {
+    if (typeof response !== 'object' || response === null) {
+      return false;
+    }
+
+    const candidate = response as Partial<ApiResult<unknown>>;
+    return candidate.isSuccess === true || candidate.isFailure === false;
+  }
+
+  private extractTokenFromResponse(response: unknown): string | null {
+    if (typeof response !== 'object' || response === null) {
+      return null;
+    }
+
+    const candidate = response as Partial<ApiResult<unknown>> & { token?: unknown; accessToken?: unknown; value?: unknown };
+    const directToken = typeof candidate.token === 'string' ? candidate.token : null;
+    const accessToken = typeof candidate.accessToken === 'string' ? candidate.accessToken : null;
+    const wrappedValue = typeof candidate.value === 'string' ? candidate.value : null;
+
+    return directToken ?? accessToken ?? wrappedValue ?? null;
   }
 
   private isTokenExpired(token: string): boolean {
@@ -159,7 +182,7 @@ export class Auth {
     return trimmedClaim;
   }
 
-  private extractRoleFromClaims(decodedUser: any): string {
+  private extractRoleFromClaims(decodedUser: any): UserRole | null {
     const rawRole =
       decodedUser?.roleId ??
       decodedUser?.RoleId ??
@@ -168,7 +191,32 @@ export class Auth {
       decodedUser?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ??
       '';
 
-    return typeof rawRole === 'string' ? rawRole.trim().toUpperCase() : '';
+    if (typeof rawRole !== 'string') {
+      return null;
+    }
+
+    const trimmedRole = rawRole.trim();
+    const roleMatch = Object.values(UserRole).find((role) => role.toLowerCase() === trimmedRole.toLowerCase());
+
+    if (roleMatch) {
+      return roleMatch as UserRole;
+    }
+
+    const normalizedRole = trimmedRole.toUpperCase();
+
+    if (normalizedRole.includes('ADMIN')) {
+      return UserRole.Admin;
+    }
+
+    if (normalizedRole.includes('TEACH') || normalizedRole.includes('PROF')) {
+      return UserRole.Theacher;
+    }
+
+    if (normalizedRole.includes('STUDENT')) {
+      return UserRole.Student;
+    }
+
+    return null;
   }
 
 

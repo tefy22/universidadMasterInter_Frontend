@@ -56,5 +56,5 @@ export const roleLandingGuard: CanActivateFn = async () => {
     return router.createUrlTree(['/admin/subjects']);
   }
 
-  return router.createUrlTree(['/auth/login']);
+  return true;
 };

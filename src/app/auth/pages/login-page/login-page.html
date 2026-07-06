@@ -33,7 +33,12 @@
     </svg>
     <input type="password" formControlName="password" placeholder="Password"/>
   </label>
-  <button class="btn btn-secondary" type="submit">Iniciar sesión</button>
+  <button class="btn btn-secondary" type="submit" [disabled]="isPosting()">
+    @if (isPosting()) {
+      <span class="loading loading-spinner loading-xs"></span>
+    }
+    Iniciar sesión
+  </button>
 
   @if (hasError()) {
   <div role="alert" class="alert alert-error fadein fixed bottom-5 right-5 w-52">
