@@ -1,0 +1,217 @@
+<div class="p-6 max-w-6xl mx-auto">
+	<div class="flex justify-between items-center mb-6">
+		<div>
+			<h1 class="text-2xl font-bold text-base-content">Gestión de Usuarios</h1>
+			<p class="text-sm text-base-content/60">Administración de cuentas registradas</p>
+		</div>
+		<div class="flex items-center gap-2">
+			<button (click)="refreshUsers()" class="btn btn-outline gap-2" [disabled]="isLoading() || isSubmitting()">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+				Refrescar
+			</button>
+			<button (click)="openModal()" class="btn btn-primary gap-2">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+				Nuevo Usuario
+			</button>
+		</div>
+	</div>
+
+	@if (successMessage()) {
+		<div class="alert alert-success mb-6 shadow-sm">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+			</svg>
+			<span>{{ successMessage() }}</span>
+		</div>
+	}
+
+	@if (errorMessage()) {
+		<div class="alert alert-error mb-6 shadow-sm">
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+			</svg>
+			<span>{{ errorMessage() }}</span>
+		</div>
+	}
+
+	<div class="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+		<div class="flex flex-col gap-2 md:flex-row md:items-center">
+			<label class="flex flex-col">
+				<span class="label-text text-sm text-base-content/70">Buscar</span>
+				<input type="text" class="input input-bordered" placeholder="Buscar por DNI, nombre, correo, rol o estado" (input)="setFilter($any($event.target).value)" />
+			</label>
+			<label class="flex flex-col">
+				<span class="label-text text-sm text-base-content/70">Mostrar</span>
+				<select class="select select-bordered" [value]="pageSize()" (change)="setPageSize(+($any($event.target).value))">
+					@for (size of pageSizeOptions; track size) {
+						<option [value]="size">{{ size }} por página</option>
+					}
+				</select>
+			</label>
+		</div>
+		<div class="text-sm text-base-content/60">
+			Última actualización: {{ lastRefreshed() || 'Cargando...' }}
+		</div>
+	</div>
+
+	@if (isLoading()) {
+		<div class="flex flex-col gap-4 w-full">
+			<div class="skeleton h-12 w-full"></div>
+			<div class="skeleton h-12 w-full"></div>
+			<div class="skeleton h-12 w-full"></div>
+		</div>
+	} @else {
+		<div class="overflow-x-auto border border-base-200 rounded-lg shadow-sm bg-base-100">
+			<table class="table table-zebra w-full">
+				<thead>
+					<tr class="bg-base-200 text-base-content">
+						<th>DNI</th>
+						<th>Nombre</th>
+						<th>Correo</th>
+						<th>Teléfono</th>
+						<th>Rol</th>
+						<th>Estado</th>
+						<th class="text-center">Acciones</th>
+					</tr>
+				</thead>
+				<tbody>
+					@for (user of pagedUsers(); track user.id) {
+						<tr class="hover">
+							<td>{{ user.dni }}</td>
+							<td>
+								<div class="font-semibold text-base-content">{{ user.name }} {{ user.lastName }}</div>
+							</td>
+							<td>{{ user.email }}</td>
+							<td>{{ user.phoneNumber }}</td>
+							<td>{{ getRoleLabel(user.roleId) }}</td>
+							<td>
+								<span class="badge" [class.badge-success]="user.status === 1" [class.badge-neutral]="user.status !== 1">
+									{{ getStatusLabel(user.status) }}
+								</span>
+							</td>
+							<td class="text-center">
+								<div class="flex justify-center gap-2">
+									<button
+										(click)="onEdit(user)"
+										class="btn btn-square btn-sm btn-ghost hover:bg-warning/20 hover:text-warning"
+										title="Editar usuario">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+										</svg>
+									</button>
+									<button
+										(click)="onDelete(user)"
+										class="btn btn-square btn-sm btn-ghost hover:bg-error/20 hover:text-error"
+										title="Eliminar usuario">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+										</svg>
+									</button>
+								</div>
+							</td>
+						</tr>
+					} @empty {
+						<tr>
+							<td colspan="7" class="text-center py-8 text-base-content/50">
+								<p class="text-lg font-medium">No se encontraron usuarios registrados</p>
+								<p class="text-sm">Ajusta el filtro o prueba de nuevo más tarde.</p>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+
+		<div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+			<div class="text-sm text-base-content/70">
+				Mostrando {{ pagedUsers().length }} de {{ filteredUsers().length }} usuarios filtrados
+			</div>
+			<div class="inline-flex items-center gap-2">
+				<button class="btn btn-sm btn-outline" [disabled]="currentPage() === 1" (click)="goToPreviousPage()">Anterior</button>
+				<span class="text-sm">Página {{ currentPage() }} de {{ pageCount() }}</span>
+				<button class="btn btn-sm btn-outline" [disabled]="currentPage() === pageCount()" (click)="goToNextPage()">Siguiente</button>
+			</div>
+		</div>
+	}
+</div>
+
+<dialog id="user_modal" class="modal modal-bottom sm:modal-middle" #userModal>
+	<div class="modal-box bg-base-100 border border-base-200 shadow-xl">
+		<h3 class="font-bold text-lg text-base-content mb-4">{{ editingUser() ? 'Editar Usuario' : 'Agregar Nuevo Usuario' }}</h3>
+
+		<form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">DNI</span></div>
+					<input type="number" formControlName="dni" placeholder="Ej. 12345678" class="input input-bordered w-full"
+								 [class.input-error]="userForm.get('dni')?.invalid && userForm.get('dni')?.touched" />
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Nombre</span></div>
+					<input type="text" formControlName="name" placeholder="Ej. Ana" class="input input-bordered w-full"
+								 [class.input-error]="userForm.get('name')?.invalid && userForm.get('name')?.touched" />
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Apellido</span></div>
+					<input type="text" formControlName="lastName" placeholder="Ej. Gómez" class="input input-bordered w-full"
+								 [class.input-error]="userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched" />
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Correo electrónico</span></div>
+					<input type="email" formControlName="email" placeholder="ejemplo@mail.com" class="input input-bordered w-full"
+								 [class.input-error]="userForm.get('email')?.invalid && userForm.get('email')?.touched" />
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Contraseña</span></div>
+					<input type="password" formControlName="password" placeholder="Mínimo 6 caracteres" class="input input-bordered w-full"
+								 [class.input-error]="userForm.get('password')?.invalid && userForm.get('password')?.touched" />
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Teléfono</span></div>
+					<input type="text" formControlName="phoneNumber" placeholder="Ej. 0981234567" class="input input-bordered w-full"
+								 [class.input-error]="userForm.get('phoneNumber')?.invalid && userForm.get('phoneNumber')?.touched" />
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Rol</span></div>
+					<select formControlName="roleId" class="select select-bordered w-full"
+									[class.select-error]="userForm.get('roleId')?.invalid && userForm.get('roleId')?.touched">
+						@for (role of roleOptions; track role.value) {
+							<option [value]="role.value">{{ role.label }}</option>
+						}
+					</select>
+				</label>
+
+				<label class="form-control w-full">
+					<div class="label"><span class="label-text font-medium text-base-content/80">Estado</span></div>
+					<select formControlName="status" class="select select-bordered w-full"
+									[class.select-error]="userForm.get('status')?.invalid && userForm.get('status')?.touched">
+						@for (status of statusOptions; track status.value) {
+							<option [value]="status.value">{{ status.label }}</option>
+						}
+					</select>
+				</label>
+			</div>
+
+			<div class="modal-action mt-6 gap-2">
+				<button type="button" (click)="closeModal()" class="btn btn-ghost" [disabled]="isSubmitting()">Cancelar</button>
+				<button type="submit" class="btn btn-primary min-w-25" [disabled]="userForm.invalid || isSubmitting()">
+					@if (isSubmitting()) {
+						<span class="loading loading-spinner loading-xs"></span>
+					} @else {
+						{{ editingUser() ? 'Guardar cambios' : 'Guardar' }}
+					}
+				</button>
+			</div>
+		</form>
+	</div>
+
+	<form method="dialog" class="modal-backdrop">
+		<button (click)="closeModal()">Cerrar</button>
+	</form>
+</dialog>

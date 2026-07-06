@@ -1,0 +1,131 @@
+<div class="p-8 max-w-7xl mx-auto space-y-8 text-base leading-7 text-base-content">
+  <div class="rounded-3xl border border-base-200 bg-base-100 p-8 shadow-sm">
+    <div class="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+      <div class="max-w-3xl">
+        <p class="text-xs uppercase tracking-[0.4em] text-primary">Panel del estudiante</p>
+        <h1 class="mt-3 text-4xl font-semibold tracking-tight">{{ estudianteNombre }}</h1>
+        <p class="mt-4 max-w-2xl text-base text-base-content/75">Selecciona tus materias del semestre y revisa con claridad los compañeros con los que compartirás cada clase. El espacio está diseñado para ser más limpio, legible y cómodo de consumir.</p>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-3">
+        <div class="rounded-3xl border border-base-200 bg-base-200 p-5 text-center">
+          <p class="text-sm font-medium text-base-content/70">Materias seleccionadas</p>
+          <p class="mt-3 text-3xl font-bold text-primary">{{ totalSeleccionadas() }}</p>
+        </div>
+        <div class="rounded-3xl border border-base-200 bg-base-200 p-5 text-center">
+          <p class="text-sm font-medium text-base-content/70">Límite máximo de materias</p>
+          <p class="mt-3 text-3xl font-bold">3</p>
+        </div>
+        <div class="rounded-3xl border border-base-200 bg-base-200 p-5 text-center">
+          <p class="text-sm font-medium text-base-content/70">Total materias disponibles</p>
+          <p class="mt-3 text-3xl font-bold">{{ subjects().length }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-6 xl:grid-cols-[2fr_1.1fr]">
+    <div class="space-y-6">
+      <div class="rounded-3xl border border-base-200 bg-base-100 p-6 shadow-sm">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-semibold">Oferta Académica Disponible</h2>
+            <p class="mt-2 text-sm text-base-content/70">Selecciona hasta 3 materias para activar la vista de compañeros por clase.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="badge badge-neutral text-sm">{{ subjects().length }} materias</span>
+            <button class="btn btn-sm btn-primary" [disabled]="isSaving() || !puedeGuardar() || hasExistingRegistrationWithSubjects()" (click)="saveSelectedSubjects()">
+              {{ isSaving() ? 'Guardando...' : 'Guardar selección' }}
+            </button>
+          </div>
+        </div>
+
+        @if (saveMessage()) {
+          <div
+            class="alert mb-6 shadow-sm"
+            role="alert"
+            [ngClass]="saveMessageType() === 'success'
+              ? 'alert-success'
+              : 'alert-error'"
+          >
+            {{ saveMessage() }}
+          </div>
+        }
+
+        @if (error()) {
+          <div class="alert alert-error mb-6 shadow-sm" role="alert">
+            {{ error() }}
+          </div>
+        }
+
+        @if (limiteAlcanzado()) {
+          <div class="alert alert-warning mb-5 rounded-3xl border border-warning/20 bg-warning/10 text-warning-content shadow-sm">
+            No puedes seleccionar más de 3 materias. Desmarca una materia para continuar.
+          </div>
+        }
+
+        <div class="space-y-3 max-h-[52vh] overflow-y-auto pr-1 sm:max-h-[58vh] lg:max-h-[64vh]">
+          @for (materia of subjects(); track materia.id) {
+            <div
+              class="flex flex-col gap-4 rounded-3xl border p-4 transition-all cursor-pointer sm:flex-row sm:items-center sm:justify-between"
+              [class.pointer-events-none]="hasExistingRegistrationWithSubjects()"
+              [class.cursor-not-allowed]="hasExistingRegistrationWithSubjects()"
+              [class.opacity-70]="hasExistingRegistrationWithSubjects()"
+              [ngClass]="materia.seleccionada
+                ? 'bg-primary/10 border-primary shadow-sm'
+                : 'bg-base-200/50 border-base-300 hover:bg-base-200'"
+              (click)="toggleMateria(materia.id)"
+            >
+              <div class="flex items-center gap-4">
+                <input type="checkbox" [checked]="materia.seleccionada" class="checkbox checkbox-primary pointer-events-none" />
+                <div>
+                  <p class="text-base font-semibold" [ngClass]="{'text-primary': materia.seleccionada}">{{ materia.name }}</p>
+                  <p class="mt-1 text-sm text-base-content/70">Prof. {{ materia.userName }}</p>
+                  <p class="mt-1 text-sm text-base-content/70">{{ materia.credits }} créditos</p>
+                </div>
+              </div>
+              <span class="badge" [ngClass]="materia.seleccionada ? 'badge-primary' : 'badge-ghost opacity-70'">
+                {{ materia.seleccionada ? 'Seleccionada' : 'Pendiente' }}
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="rounded-3xl border border-base-200 bg-base-100 p-6 shadow-sm">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
+          <div>
+            <h2 class="text-2xl font-semibold">Compañeros por materia</h2>
+            <p class="mt-2 text-sm text-base-content/70">Verás el nombre de los alumnos con los que compartirás cada clase.</p>
+          </div>
+          <span class="badge badge-outline text-sm">{{ selectedSubjects().length }}</span>
+        </div>
+
+        @if (!selectedSubjects().length) {
+          <div class="rounded-3xl border border-dashed border-base-300 bg-base-200 p-6 text-center text-base-content/70">
+            Selecciona materias para mostrar con quién compartirás tus clases.
+          </div>
+        } @else {
+          <div class="space-y-4">
+            @for (group of classmatesBySubject(); track group.subjectName) {
+              <div class="rounded-3xl border border-base-200 bg-base-200 p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
+                  <h3 class="text-lg font-semibold text-base-content">{{ group.subjectName }}</h3>
+                  <span class="badge badge-primary">{{ group.classmates.length }} compañeros</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  @for (name of group.classmates; track name) {
+                    <span class="badge badge-secondary badge-outline text-sm">{{ name }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+    </div>
+  </div>
+</div>

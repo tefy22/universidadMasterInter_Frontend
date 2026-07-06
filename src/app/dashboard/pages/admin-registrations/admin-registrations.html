@@ -1,0 +1,209 @@
+<div class="p-6 max-w-6xl mx-auto">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-base-content">Gestión de Inscripciones</h1>
+      <p class="text-sm text-base-content/60">Control de registros de materias por estudiante</p>
+    </div>
+    <button (click)="openModal()" class="btn btn-primary gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+      Nuevo Registro
+    </button>
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert alert-success mb-6 shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-error mb-6 shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center">
+      <label class="flex flex-col">
+        <span class="label-text text-sm text-base-content/70">Buscar</span>
+        <input type="text" class="input input-bordered" placeholder="Buscar por estudiante o estado" (input)="setFilter($any($event.target).value)" />
+      </label>
+      <label class="flex flex-col">
+        <span class="label-text text-sm text-base-content/70">Mostrar</span>
+        <select class="select select-bordered" [value]="pageSize()" (change)="setPageSize(+($any($event.target).value))">
+          @for (size of pageSizeOptions; track size) {
+            <option [value]="size">{{ size }} por página</option>
+          }
+        </select>
+      </label>
+    </div>
+    <div class="text-sm text-base-content/60">
+      Última actualización: {{ lastRefreshed() || 'Cargando...' }}
+    </div>
+  </div>
+
+  @if (isLoading()) {
+    <div class="flex flex-col gap-4 w-full">
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-12 w-full"></div>
+    </div>
+  } @else {
+    <div class="overflow-x-auto border border-base-200 rounded-lg shadow-sm bg-base-100">
+      <table class="table table-zebra w-full">
+        <thead>
+          <tr class="bg-base-200 text-base-content">
+            <th>ID</th>
+            <th>Estudiante</th>
+            <th>Materias</th>
+            <th>Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (registration of pagedRegistrations(); track registration.id) {
+            <tr class="hover">
+              <td>{{ registration.id }}</td>
+              <td>{{ registration.studentName }}</td>
+              <td class="max-w-xl">
+                <div class="space-y-2">
+                  @if (registration.details.length) {
+                    @for (detail of registration.details; track detail.id) {
+                      <div class="rounded-2xl border border-base-200 bg-base-200 p-3">
+                        <p class="font-medium text-sm">{{ detail.subjectName }}</p>
+                        <p class="text-xs text-base-content/70">Profesor: {{ detail.teacherName }}</p>
+                      </div>
+                    }
+                  } @else {
+                    <span class="text-sm text-base-content/60">Sin materias registradas</span>
+                  }
+                </div>
+              </td>
+              <td>
+                @if (registration.status === 1) {
+                  <span class="badge badge-info badge-sm gap-1 text-white font-medium">En curso</span>
+                } @else if (registration.status === 2) {
+                  <span class="badge badge-warning badge-sm gap-1 text-white font-medium">Cancelado</span>
+                } @else {
+                  <span class="badge badge-success badge-sm gap-1 text-white font-medium">Completado</span>
+                }
+              </td>
+              <td class="text-center">
+                <div class="flex justify-center gap-2">
+                  <button
+                    (click)="onDelete(registration)"
+                    class="btn btn-square btn-sm btn-ghost hover:bg-error/20 hover:text-error"
+                    title="Eliminar registro">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="text-center py-8 text-base-content/50">
+                <p class="text-lg font-medium">No se encontraron registros</p>
+                <p class="text-sm">Ajusta el filtro o prueba de nuevo más tarde.</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="text-sm text-base-content/70">
+        Mostrando {{ pagedRegistrations().length }} de {{ filteredRegistrations().length }} registros filtrados
+      </div>
+      <div class="inline-flex items-center gap-2">
+        <button class="btn btn-sm btn-outline" [disabled]="currentPage() === 1" (click)="goToPreviousPage()">Anterior</button>
+        <span class="text-sm">Página {{ currentPage() }} de {{ pageCount() }}</span>
+        <button class="btn btn-sm btn-outline" [disabled]="currentPage() === pageCount()" (click)="goToNextPage()">Siguiente</button>
+      </div>
+    </div>
+  }
+</div>
+
+<dialog id="registration_modal" class="modal modal-bottom sm:modal-middle" #registrationModal>
+  <div class="modal-box bg-base-100 border border-base-200 shadow-xl max-w-4xl w-full">
+    <h3 class="font-bold text-lg text-base-content mb-4">{{ editingRegistration() ? 'Editar Registro' : 'Agregar Nuevo Registro' }}</h3>
+
+    <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()">
+      <div class="flex flex-col gap-4">
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-base-content/80">Estudiante</span></div>
+          <select formControlName="studentId" class="select select-bordered w-full"
+                  [class.select-error]="registrationForm.get('studentId')?.invalid && registrationForm.get('studentId')?.touched">
+            <option value="" disabled selected>Selecciona un estudiante</option>
+            @for (student of students(); track student.id) {
+              <option [value]="student.id">{{ student.name }} {{ student.lastname }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-base-content/80">Materias</span></div>
+          <select formControlName="subjectIds" multiple class="select select-bordered w-full"
+                  [class.select-error]="(registrationForm.get('subjectIds')?.invalid && registrationForm.get('subjectIds')?.touched) || hasTooManySubjectsSelected()">
+            @for (subject of subjects(); track subject.id) {
+              <option [value]="subject.id">{{ subject.name }} - Profesor: {{ subject.userName }}</option>
+            }
+          </select>
+          @if (hasTooManySubjectsSelected()) {
+            <span class="text-sm text-error mt-2 block">No puedes seleccionar más de 3 materias. Quita alguna para continuar.</span>
+          } @else {
+            <span class="text-sm text-base-content/60 mt-2 block">Selecciona hasta 3 materias.</span>
+          }
+        </label>
+
+        @if (getSelectedSubjectDetails().length) {
+          <div class="rounded-2xl border border-base-200 bg-base-200 p-4">
+            <p class="text-sm font-medium text-base-content/80 mb-3">Profesor por materia</p>
+            <div class="space-y-2">
+              @for (detail of getSelectedSubjectDetails(); track detail.name) {
+                <div class="flex items-center justify-between gap-3 rounded-xl border border-base-300 bg-base-100 p-3">
+                  <span class="font-medium text-sm">{{ detail.name }}</span>
+                  <span class="text-sm text-base-content/70">Profesor: {{ detail.teacherName }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-base-content/80">Estado</span></div>
+          <select formControlName="status" class="select select-bordered w-full"
+                  [class.select-error]="registrationForm.get('status')?.invalid && registrationForm.get('status')?.touched">
+            <option [value]="1">En Curso</option>
+            <option [value]="2">Cancelado</option>
+            <option [value]="3">Completado</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="modal-action mt-6 gap-2">
+        <button type="button" (click)="closeModal()" class="btn btn-ghost" [disabled]="isSubmitting()">Cancelar</button>
+        <button type="submit" class="btn btn-primary min-w-25" [disabled]="registrationForm.invalid || hasTooManySubjectsSelected() || isSubmitting()">
+          @if (isSubmitting()) {
+            <span class="loading loading-spinner loading-xs"></span>
+          } @else {
+            {{ editingRegistration() ? 'Guardar cambios' : 'Guardar' }}
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeModal()">Cerrar</button>
+  </form>
+</dialog>
+

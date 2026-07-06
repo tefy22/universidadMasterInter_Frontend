@@ -1,0 +1,222 @@
+<!-- subject-list.component.html -->
+<div class="p-6 max-w-6xl mx-auto">
+
+  <!-- Encabezado de la Sección -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-base-content">Gestión de Materias</h1>
+      <p class="text-sm text-base-content/60">Lista de asignaturas del periodo académico actual</p>
+    </div>
+    <button (click)="openModal()" class="btn btn-primary gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+      Nueva Materia
+    </button>
+  </div>
+
+  @if (successMessage()) {
+    <div class="alert alert-success mb-6 shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span>{{ successMessage() }}</span>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-error mb-6 shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+      </svg>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <div class="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div class="flex flex-col gap-2 md:flex-row md:items-center">
+      <label class="flex flex-col">
+        <span class="label-text text-sm text-base-content/70">Buscar</span>
+        <input type="text" class="input input-bordered" placeholder="Buscar materia o profesor" (input)="setFilter($any($event.target).value)" />
+      </label>
+      <label class="flex flex-col">
+        <span class="label-text text-sm text-base-content/70">Mostrar</span>
+        <select class="select select-bordered" [value]="pageSize()" (change)="setPageSize(+($any($event.target).value))">
+          @for (size of pageSizeOptions; track size) {
+            <option [value]="size">{{ size }} por página</option>
+          }
+        </select>
+      </label>
+    </div>
+    <div class="text-sm text-base-content/60">
+      Última actualización: {{ lastRefreshed() || 'Cargando...' }}
+    </div>
+  </div>
+
+  <!-- Estado de Carga (Skeleton de DaisyUI) -->
+  @if (isLoading()) {
+    <div class="flex flex-col gap-4 w-full">
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-12 w-full"></div>
+      <div class="skeleton h-12 w-full"></div>
+    </div>
+  } @else {
+
+    <!-- Contenedor de Tabla DaisyUI con Overlow para Responsive -->
+    <div class="overflow-x-auto border border-base-200 rounded-lg shadow-sm bg-base-100">
+      <table class="table table-zebra w-full">
+        <!-- Cabeza de la Tabla -->
+        <thead>
+          <tr class="bg-base-200 text-base-content">
+            <th>Materia</th>
+            <th>Créditos</th>
+            <th>Profesor Asignado</th>
+            <th>Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </thead>
+
+        <!-- Cuerpo de la Tabla -->
+        <tbody>
+          @for (subject of pagedSubjects(); track subject.id) {
+            <tr class="hover">
+              <td>
+                <div class="font-semibold text-base-content">{{ subject.name }}</div>
+                <div class="text-xs text-base-content/40 font-mono">ID: {{ subject.id }}</div>
+              </td>
+              <td>
+                <span class="badge badge-ghost font-medium">{{ subject.credits }}</span>
+              </td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">{{ subject.userName }}</span>
+                </div>
+              </td>
+              <td>
+                @if (subject.estado === 1) {
+                  <span class="badge badge-success badge-sm gap-1 text-white font-medium">Activo</span>
+                } @else {
+                  <span class="badge badge-error badge-sm gap-1 text-white font-medium">Inactivo</span>
+                }
+              </td>
+              <!-- Botones de Acción utilizando variantes de DaisyUI -->
+              <td class="text-center">
+                <div class="flex justify-center gap-2">
+                  <!-- Botón Editar -->
+                  <button
+                    (click)="onEdit(subject)"
+                    class="btn btn-square btn-sm btn-ghost hover:bg-warning/20 hover:text-warning"
+                    title="Editar materia">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+
+                  <!-- Botón Eliminar -->
+                  <button
+                    (click)="onDelete(subject)"
+                    class="btn btn-square btn-sm btn-ghost hover:bg-error/20 hover:text-error"
+                    title="Eliminar materia">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <!-- Estado vacío si la lista de la señal no tiene ítems -->
+            <tr>
+              <td colspan="5" class="text-center py-8 text-base-content/50">
+                <p class="text-lg font-medium">No se encontraron materias registradas</p>
+                <p class="text-sm">Ajusta el filtro o prueba de nuevo más tarde.</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="text-sm text-base-content/70">
+        Mostrando {{ pagedSubjects().length }} de {{ filteredSubjects().length }} materias filtradas
+      </div>
+      <div class="inline-flex items-center gap-2">
+        <button class="btn btn-sm btn-outline" [disabled]="currentPage() === 1" (click)="goToPreviousPage()">Anterior</button>
+        <span class="text-sm">Página {{ currentPage() }} de {{ pageCount() }}</span>
+        <button class="btn btn-sm btn-outline" [disabled]="currentPage() === pageCount()" (click)="goToNextPage()">Siguiente</button>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL DE DAISYUI PARA NUEVA MATERIA        -->
+<!-- ========================================== -->
+<dialog id="subject_modal" class="modal modal-bottom sm:modal-middle" #subjectModal>
+  <div class="modal-box bg-base-100 border border-base-200 shadow-xl">
+    <h3 class="font-bold text-lg text-base-content mb-4">
+      {{ editingSubject() ? 'Editar Materia' : 'Agregar Nueva Materia' }}
+    </h3>
+
+    <form [formGroup]="subjectForm" (ngSubmit)="onSubmit()">
+      <div class="flex flex-col gap-4">
+
+        <!-- Campo: Nombre de la Materia -->
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-base-content/80">Nombre de la Materia</span></div>
+          <input type="text" formControlName="name" placeholder="Ej. Álgebra Lineal" class="input input-bordered w-full"
+                 [class.input-error]="subjectForm.get('name')?.invalid && subjectForm.get('name')?.touched" />
+        </label>
+
+        <!-- Campo: Créditos -->
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-base-content/80">Créditos</span></div>
+          <input type="number" formControlName="credits" placeholder="Ej. 3" class="input input-bordered w-full"
+                 [class.input-error]="subjectForm.get('credits')?.invalid && subjectForm.get('credits')?.touched" />
+        </label>
+
+        <!-- Campo: Profesor Asignado (Carga la lista dinámica de profesores) -->
+        <label class="form-control w-full">
+          <div class="label"><span class="label-text font-medium text-base-content/80">Profesor Asignado</span></div>
+            <select formControlName="idUser" class="select select-bordered w-full"
+              [class.select-error]="subjectForm.get('idUser')?.invalid && subjectForm.get('idUser')?.touched">
+            <option value="" disabled selected>Selecciona un profesor</option>
+            @for (teacher of users(); track teacher.id) {
+              <option [value]="teacher.id">{{ teacher.name }} {{ teacher.lastName }}</option>
+            }
+          </select>
+        </label>
+
+        @if (editingSubject() ) {
+           <!-- Campo: Estado -->
+          <label class="form-control w-full">
+            <div class="label"><span class="label-text font-medium text-base-content/80">Estado</span></div>
+            <select formControlName="estado" class="select select-bordered w-full"
+                    [class.select-error]="subjectForm.get('estado')?.invalid && subjectForm.get('estado')?.touched">
+              <option [value]="1">Activo</option>
+              <option [value]="0">Inactivo</option>
+            </select>
+          </label>
+        }
+
+
+      </div>
+
+      <!-- Botones de Acción de la Ventana Emergente -->
+      <div class="modal-action mt-6 gap-2">
+        <button type="button" (click)="closeModal()" class="btn btn-ghost" [disabled]="isSubmitting()">Cancelar</button>
+        <button type="submit" class="btn btn-primary min-w-25" [disabled]="subjectForm.invalid || isSubmitting()">
+          @if (isSubmitting()) {
+            <span class="loading loading-spinner loading-xs"></span>
+          } @else {
+            {{ editingSubject() ? 'Guardar cambios' : 'Guardar' }}
+          }
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Clic fuera del recuadro cierra el modal de forma nativa -->
+  <form method="dialog" class="modal-backdrop">
+    <button (click)="closeModal()">Cerrar</button>
+  </form>
+</dialog>
