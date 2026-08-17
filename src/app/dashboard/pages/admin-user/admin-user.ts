@@ -283,9 +283,7 @@ export class AdminUser implements OnInit, OnDestroy {
               return;
             }
 
-            this.users.update(items => items.map(user =>
-              user.id === editing.id ? { ...user, id: editing.id, ...payload } : user
-            ));
+            this.loadUsers(false);
             this.lastRefreshed.set(new Date().toLocaleTimeString());
             this.showTemporarySuccess('Usuario actualizado correctamente.', 5000);
             this.isSubmitting.set(false);
@@ -312,6 +310,7 @@ export class AdminUser implements OnInit, OnDestroy {
         next: (result: ApiResult<string>) => {
           if (!result.isSuccess) {
             const message = formatBackendErrorPayload(result.error ?? result);
+            this.closeModal();
             this.showTemporaryError(`No se pudo crear: ${message}`);
             this.isSubmitting.set(false);
             return;
@@ -325,6 +324,7 @@ export class AdminUser implements OnInit, OnDestroy {
         error: (err) => {
           this.isSubmitting.set(false);
           const message = formatBackendErrorPayload(err);
+          this.closeModal();
           this.showTemporaryError(`No se pudo crear: ${message}`);
         }
       })

@@ -162,7 +162,6 @@ export class Students implements OnInit, OnDestroy {
 
   private handleSharedSubjectsError(err: any) {
     this.sharedSubjects.set([]);
-    this.setHttpError(err);
   }
 
   toggleMateria(id: string) {

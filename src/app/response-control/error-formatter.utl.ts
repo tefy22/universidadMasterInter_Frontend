@@ -21,6 +21,19 @@ export function formatBackendErrorPayload(rawError: any): string {
           .join(' | ');
       }
 
+      if (payload.errors && typeof payload.errors === 'object') {
+        const validationMessages = Object.entries(payload.errors)
+          .flatMap(([field, messages]) => {
+            const values = Array.isArray(messages) ? messages : [messages];
+            return values.map(message => `${field}: ${String(message)}`);
+          })
+          .filter(Boolean);
+
+        if (validationMessages.length > 0) {
+          return validationMessages.join(' | ');
+        }
+      }
+
       if (payload.message && typeof payload.message === 'string' && payload.message.trim()) {
         return payload.message;
       }
