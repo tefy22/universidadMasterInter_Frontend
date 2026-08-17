@@ -1,1 +1,85 @@
-<p>teachers works!</p>,
+<main class="min-h-[calc(100vh-5rem)] bg-base-200 px-4 py-8 sm:px-6 lg:px-10">
+	<div class="mx-auto max-w-7xl">
+		<header class="mb-8 flex flex-col gap-5 border-b border-base-300 pb-7 sm:flex-row sm:items-end sm:justify-between">
+			<div>
+				<p class="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-secondary">Panel docente</p>
+				<h1 class="font-montserrat text-3xl font-bold text-base-content sm:text-4xl">Hola, {{ teacherName() }}</h1>
+				<p class="mt-2 max-w-2xl text-base-content/60">Consulta tus materias y el estado de los alumnos matriculados.</p>
+			</div>
+			<button class="btn btn-outline btn-secondary gap-2" type="button" (click)="loadData()" [disabled]="isLoading()">
+				<span aria-hidden="true" class="text-lg">↻</span>
+				Actualizar
+			</button>
+		</header>
+
+		@if (error()) {
+			<div role="alert" class="alert alert-error mb-6"><span>{{ error() }}</span></div>
+		}
+
+		@if (isLoading()) {
+			<div class="flex min-h-64 items-center justify-center">
+				<span class="loading loading-spinner loading-lg text-secondary" aria-label="Cargando información"></span>
+			</div>
+		} @else {
+			<section class="mb-8 grid gap-4 sm:grid-cols-3" aria-label="Resumen docente">
+				<article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+					<p class="text-sm text-base-content/60">Materias asignadas</p>
+					<p class="mt-2 text-3xl font-bold text-secondary">{{ teacherSubjects().length }}</p>
+				</article>
+				<article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+					<p class="text-sm text-base-content/60">Alumnos únicos</p>
+					<p class="mt-2 text-3xl font-bold text-primary">{{ totalStudents() }}</p>
+				</article>
+				<article class="rounded-2xl border border-base-300 bg-base-100 p-5 shadow-sm">
+					<p class="text-sm text-base-content/60">Matrículas activas</p>
+					<p class="mt-2 text-3xl font-bold text-accent">{{ totalEnrollments() }}</p>
+				</article>
+			</section>
+
+			@if (teacherSubjects().length === 0) {
+				<section class="rounded-2xl border border-dashed border-base-300 bg-base-100 px-6 py-16 text-center">
+					<h2 class="text-xl font-bold">Aún no tienes materias asignadas</h2>
+					<p class="mt-2 text-base-content/60">Cuando se asignen materias, aparecerán aquí junto con sus alumnos.</p>
+				</section>
+			} @else {
+				<section>
+					<div class="mb-4 flex items-center justify-between gap-4">
+						<h2 class="font-montserrat text-xl font-bold">Mis materias</h2>
+						<span class="text-right text-xs text-base-content/50">Actualizado {{ refreshTime() }}</span>
+					</div>
+
+					<div class="grid gap-5 lg:grid-cols-2">
+						@for (subject of teacherSubjects(); track subject.id) {
+							<article class="overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+								<div class="flex items-start justify-between gap-4 border-b border-base-200 p-6">
+									<div>
+										<p class="mb-1 text-xs font-semibold uppercase tracking-wider text-secondary">Materia</p>
+										<h3 class="font-montserrat text-xl font-bold">{{ subject.name }}</h3>
+										<p class="mt-1 text-sm text-base-content/60">{{ subject.credits }} créditos</p>
+									</div>
+									<span class="badge badge-secondary badge-outline whitespace-nowrap">{{ subject.enrolledStudents.length }} alumnos</span>
+								</div>
+								<div class="p-6">
+									@if (subject.enrolledStudents.length === 0) {
+										<p class="py-4 text-sm text-base-content/50">No hay alumnos matriculados en esta materia.</p>
+									} @else {
+										<div class="overflow-x-auto">
+											<table class="table table-sm">
+												<thead><tr><th>Alumno</th><th class="text-right">Estado</th></tr></thead>
+												<tbody>
+													@for (student of subject.enrolledStudents; track student.id) {
+														<tr><td class="font-medium">{{ student.name }}</td><td class="text-right"><span class="badge badge-success badge-sm">Activo</span></td></tr>
+													}
+												</tbody>
+											</table>
+										</div>
+									}
+								</div>
+							</article>
+						}
+					</div>
+				</section>
+			}
+		}
+	</div>
+</main>
